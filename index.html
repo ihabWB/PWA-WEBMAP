@@ -1,49 +1,136 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
-        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
-        <link rel="stylesheet" href="css/qgis2web.css">
-        <link rel="stylesheet" href="css/fontawesome-all.min.css">
-        <link rel="stylesheet" href="css/leaflet-search.css">
-        <link rel="stylesheet" href="css/leaflet.photon.css">
-        <style>
-        html, body, #map {
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Existing QGIS2Web CSS -->
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet-search.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CSS (optional, but good practice for consistency) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+
+    <style>
+        /* Existing QGIS2Web map styling */
+        html, body {
             width: 100%;
             height: 100%;
             padding: 0;
             margin: 0;
         }
-        </style>
-        <title></title>
-    </head>
-    <body>
-        <div id="map">
-        </div>
-        <script src="js/qgis2web_expressions.js"></script>
-        <script src="js/leaflet.js"></script>
-        <script src="js/L.Control.Layers.Tree.min.js"></script>
-        <script src="js/L.Control.Locate.min.js"></script>
-        <script src="js/leaflet-svg-shape-markers.min.js"></script>
-        <script src="js/leaflet.rotatedMarker.js"></script>
-        <script src="js/leaflet.pattern.js"></script>
-        <script src="js/leaflet-hash.js"></script>
-        <script src="js/Autolinker.min.js"></script>
-        <script src="js/rbush.min.js"></script>
-        <script src="js/labelgun.min.js"></script>
-        <script src="js/labels.js"></script>
-        <script src="js/leaflet.photon.js"></script>
-        <script src="js/leaflet-search.js"></script>
-        <script src="data/master_plane_comiPipelines_1.js"></script>
-        <script src="data/Springs_2.js"></script>
-        <script src="data/GroundAquifers_3.js"></script>
-        <script>
+
+        /* New styles for layout and chart panel */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column; /* Stack elements vertically on small screens */
+            min-height: 100vh;
+            background-color: #f3f4f6; /* Light gray background */
+            padding: 1rem; /* Add some padding around the whole app */
+        }
+        #map {
+            flex-grow: 1; /* Map takes available space */
+            height: 60vh; /* Initial height for map on small screens */
+            width: 100%;
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            overflow: hidden; /* Ensure rounded corners clip content */
+            z-index: 0; /* Ensure map is below other controls if any */
+        }
+        #chart-panel {
+            width: 100%; /* Full width on small screens */
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 1.5rem; /* Space between map and chart panel */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Responsive adjustments for larger screens */
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row; /* Side-by-side on larger screens */
+                padding: 2rem; /* More padding on desktop */
+            }
+            #map {
+                height: 90vh; /* Taller map on desktop */
+                width: 70%; /* Map takes 70% width */
+                margin-right: 1.5rem; /* Space between map and chart panel */
+            }
+            #chart-panel {
+                width: 30%; /* Chart panel takes 30% width */
+                margin-top: 0; /* Remove top margin when side-by-side */
+            }
+        }
+
+        /* Styling for Leaflet popups containing charts */
+        .leaflet-popup-content {
+            min-width: 250px; /* Ensure pop-up is wide enough for chart */
+            max-height: 300px; /* Limit pop-up height */
+            overflow-y: auto; /* Enable scrolling if content exceeds max-height */
+        }
+        /* Make the chart canvas responsive within its container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 150px; /* Fixed height for popup charts */
+            margin-top: 1rem;
+        }
+        #overallChart {
+            width: 100%;
+            height: 250px; /* Fixed height for overall chart */
+        }
+    </style>
+    <title>QGIS2Web Map with Enhanced Charts</title>
+</head>
+<body class="p-4 md:p-8">
+    <div id="map"></div>
+
+    <div id="chart-panel">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Pipeline Class Distribution by Total Cost</h2>
+        <canvas id="overallChart"></canvas>
+    </div>
+
+    <!-- Existing QGIS2Web JavaScript libraries -->
+    <script src="js/qgis2web_expressions.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/L.Control.Locate.min.js"></script>
+    <script src="js/leaflet-svg-shape-markers.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+    <script src="js/leaflet-search.js"></script>
+
+    <!-- QGIS2Web generated data (these paths must be correct relative to your index.html) -->
+    <script src="data/master_plane_comiPipelines_1.js"></script>
+    <script src="data/Springs_2.js"></script>
+    <script src="data/GroundAquifers_3.js"></script>
+
+    <!-- Chart.js JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+
+    <script>
         var highlightLayer;
         function highlightFeature(e) {
             highlightLayer = e.target;
@@ -114,6 +201,155 @@
         });
         layer_GoogleTerrain_0;
         map.addLayer(layer_GoogleTerrain_0);
+
+        // Function to create a chart within a popup for master_plane_comiPipelines_1 layer
+        function createPipelineFeatureChart(canvasId, properties) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) {
+                console.error(`Canvas element with ID '${canvasId}' not found.`);
+                return;
+            }
+
+            // Destroy existing chart instance if it exists on the canvas
+            if (Chart.getChart(ctx)) {
+                Chart.getChart(ctx).destroy();
+            }
+
+            // Extract values for the chart from feature properties
+            // Using 'Diameter_1', 'Length', 'total_cost', and 'unit_price' as example numerical properties
+            const data = {
+                labels: ['Diameter', 'Length', 'Total Cost', 'Unit Price'],
+                datasets: [{
+                    label: 'Pipeline Metrics',
+                    data: [
+                        properties['Diameter_1'], // Assuming Diameter_1 is a numerical field
+                        properties['Length'],     // Assuming Length is a numerical field
+                        properties['total_cost'], // Assuming total_cost is a numerical field
+                        properties['unit_price']  // Assuming unit_price is a numerical field
+                    ],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.6)', // Color for Diameter
+                        'rgba(153, 102, 255, 0.6)', // Color for Length
+                        'rgba(255, 159, 64, 0.6)', // Color for Total Cost
+                        'rgba(255, 99, 132, 0.6)' // Color for Unit Price
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const config = {
+                type: 'bar', // Bar chart for comparison
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: `Metrics for ${properties['PL_SEG_COD'] || properties['MP_PipeName'] || 'Pipeline Segment'}` // Use a relevant name property
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+
+            new Chart(ctx, config);
+        }
+
+        // Function to create the overall aggregated chart for master_plane_comiPipelines_1 layer
+        function createOverallChart(data) {
+            const ctx = document.getElementById('overallChart');
+            if (!ctx) {
+                console.error("Overall chart canvas not found.");
+                return;
+            }
+
+            if (Chart.getChart(ctx)) {
+                Chart.getChart(ctx).destroy();
+            }
+
+            // Aggregate 'total_cost' by 'CLASS'
+            const classCosts = {};
+            data.features.forEach(feature => {
+                const className = feature.properties['CLASS'];
+                const totalCost = parseFloat(feature.properties['total_cost']); // Ensure it's a number
+                if (className && !isNaN(totalCost)) {
+                    if (!classCosts[className]) {
+                        classCosts[className] = 0;
+                    }
+                    classCosts[className] += totalCost;
+                }
+            });
+
+            const labels = Object.keys(classCosts);
+            const values = Object.values(classCosts);
+
+            const config = {
+                type: 'pie', // Pie chart for class distribution
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Cost by Class',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)', // Red
+                            'rgba(54, 162, 235, 0.6)', // Blue
+                            'rgba(255, 206, 86, 0.6)', // Yellow
+                            'rgba(75, 192, 192, 0.6)', // Green
+                            'rgba(153, 102, 255, 0.6)', // Purple
+                            'rgba(255, 159, 64, 0.6)', // Orange
+                            'rgba(100, 200, 150, 0.6)', // Teal
+                            'rgba(200, 100, 100, 0.6)', // Light Red
+                            'rgba(100, 100, 200, 0.6)', // Light Blue
+                            'rgba(200, 200, 100, 0.6)'  // Light Yellow
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(100, 200, 150, 1)',
+                            'rgba(200, 100, 100, 1)',
+                            'rgba(100, 100, 200, 1)',
+                            'rgba(200, 200, 100, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right', // Place legend on the right for pie chart
+                        },
+                        title: {
+                            display: true,
+                            text: 'Total Cost Distribution by Pipeline Class'
+                        }
+                    }
+                }
+            };
+
+            new Chart(ctx, config);
+        }
+
+        // Modified pop_master_plane_comiPipelines_1 to include chart in popup
         function pop_master_plane_comiPipelines_1(feature, layer) {
             layer.on({
                 mouseout: function(e) {
@@ -132,7 +368,12 @@
                 },
                 mouseover: highlightFeature,
             });
-            var popupContent = '<table>\
+
+            // Create a unique ID for the canvas in the popup
+            const canvasId = `chartCanvas-pipeline-${feature.properties['OBJECTID_1']}`;
+
+            // Original popup content table
+            let popupTableContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['OBJECTID_1'] !== null ? autolinker.link(String(feature.properties['OBJECTID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
@@ -221,9 +462,23 @@
                         <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(String(feature.properties['Shape_Length']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
                 </table>';
+
+            // Combine original content with chart canvas
+            let popupContent = `
+                <div class="p-2">
+                    <h3 class="font-bold text-lg mb-2">${feature.properties['PL_SEG_COD'] || feature.properties['MP_PipeName'] || 'Pipeline Segment Details'}</h3>
+                    ${popupTableContent}
+                    <div class="chart-container">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            `;
+
             var content = removeEmptyRowsFromPopupContent(popupContent, feature);
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
+                // Call the chart creation function after the popup is fully open
+                createPipelineFeatureChart(canvasId, feature.properties);
 			});
 			layer.bindPopup(content, { maxHeight: 400 });
         }
@@ -371,7 +626,7 @@
             dataVar: 'json_master_plane_comiPipelines_1',
             layerName: 'layer_master_plane_comiPipelines_1',
             pane: 'pane_master_plane_comiPipelines_1',
-            onEachFeature: pop_master_plane_comiPipelines_1,
+            onEachFeature: pop_master_plane_comiPipelines_1, // Use the modified popup function
             style: style_master_plane_comiPipelines_1_0,
         });
         bounds_group.addLayer(layer_master_plane_comiPipelines_1);
@@ -559,7 +814,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(247,252,245,1.0)',
@@ -574,7 +829,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(234,247,230,1.0)',
@@ -589,7 +844,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(73,147,73,0.6588235294117647)',
@@ -604,7 +859,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(195,231,188,1.0)',
@@ -619,7 +874,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(169,220,163,1.0)',
@@ -634,7 +889,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(139,207,137,1.0)',
@@ -649,7 +904,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(106,191,113,1.0)',
@@ -659,7 +914,7 @@
                 case 'Northeastern Mountain':
                     return {
                 pane: 'pane_GroundAquifers_3',
-                stroke: false, 
+                stroke: false,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(70,174,96,1.0)',
@@ -669,7 +924,7 @@
                 case 'Sea of Galilee':
                     return {
                 pane: 'pane_GroundAquifers_3',
-                stroke: false, 
+                stroke: false,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(47,152,79,1.0)',
@@ -679,7 +934,7 @@
                 case 'Western Galilee':
                     return {
                 pane: 'pane_GroundAquifers_3',
-                stroke: false, 
+                stroke: false,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(24,129,61,1.0)',
@@ -689,7 +944,7 @@
                 case 'Western Mountain':
                     return {
                 pane: 'pane_GroundAquifers_3',
-                stroke: false, 
+                stroke: false,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(0,105,42,1.0)',
@@ -704,7 +959,7 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1.0, 
+                weight: 1.0,
                 fill: true,
                 fillOpacity: 1,
                 fillColor: 'rgba(0,68,27,1.0)',
@@ -762,7 +1017,7 @@
         var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
         search.classList.add("leaflet-control-search")
         search.style.display = "flex";
-        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+        search.style.backgroundColor="rgba(255,255,255,0.5)"
 
         // Créer le nouvel élément bouton
         var button = document.createElement("div");
@@ -806,6 +1061,20 @@
         } else {
             document.getElementsByClassName('search-button')[1].className += ' fa fa-binoculars';
         }
-        </script>
-    </body>
+
+        // Call the function to create the overall chart when the page loads
+        // Ensure json_master_plane_comiPipelines_1 is loaded before this call
+        window.onload = function() {
+            // A small delay to ensure all QGIS2Web scripts and data are fully loaded
+            setTimeout(function() {
+                if (typeof json_master_plane_comiPipelines_1 !== 'undefined') {
+                    createOverallChart(json_master_plane_comiPipelines_1);
+                } else {
+                    console.error("json_master_plane_comiPipelines_1 not found. Cannot create overall chart.");
+                }
+            }, 500); // 500ms delay
+        };
+
+    </script>
+</body>
 </html>
